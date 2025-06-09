@@ -1,21 +1,19 @@
 package com.ArqProyect.mspayments.model;
 
 import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.mapping.Document;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-@Document(collection = "cuotaGasto")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class CuotaGasto {
+public class CasaPlayload {
     @Id
     private String id;
-    private String gastoId;
-    private String userId;
-    private double valorCuota;
-    private boolean estadoPago;
+    private String nombre;
+    private String descripcion;
+    private String codigo;
+    private String[] userIds;
 }

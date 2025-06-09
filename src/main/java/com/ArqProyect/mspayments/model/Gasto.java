@@ -9,8 +9,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public abstract class Gasto{
     @Id
-    private Long id;
-    private String idCasa;
+    private String id;
+    private String casaId;
     private String descripcion;
-    private LocalDateTime fecha;
+    private LocalDateTime fechaRegistro;
 }
