@@ -1,0 +1,6 @@
+#http://localhost:15672
+
+npm init -y
+npm install mongoose
+npm install amqplib
+npm install uuid
