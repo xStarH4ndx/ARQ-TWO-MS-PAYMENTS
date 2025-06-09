@@ -17,6 +17,11 @@ public class RabbitMQConfig {
     }
 
     @Bean
+    public Queue cuotaGastoQueue() {
+        return QueueBuilder.durable("gastoCompra.queue").build();
+    }
+
+    @Bean
     public MessageConverter jsonMessageConverter() {
         return new Jackson2JsonMessageConverter();
     }
