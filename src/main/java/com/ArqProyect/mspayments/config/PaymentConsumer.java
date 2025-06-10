@@ -131,6 +131,7 @@ public class PaymentConsumer {
                     .sum();
 
             GastoCompraDTO gasto = new GastoCompraDTO();
+            gasto.setCompraId(dto.getCompraId());
             gasto.setCasaId(dto.getCasaId());
             gasto.setDescripcion("Compra de Insumos");
             gasto.setItemsCompra(itemDTOs);

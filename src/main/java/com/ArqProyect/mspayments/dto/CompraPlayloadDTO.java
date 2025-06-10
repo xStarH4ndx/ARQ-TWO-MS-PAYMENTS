@@ -14,7 +14,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class CompraPlayloadDTO {
     @NotBlank(message = "El ID de la Compra es obligatorio")
-    private String id;
+    private String compraId;
 
     @NotBlank(message = "El ID de la casa es obligatorio")
     private String casaId;

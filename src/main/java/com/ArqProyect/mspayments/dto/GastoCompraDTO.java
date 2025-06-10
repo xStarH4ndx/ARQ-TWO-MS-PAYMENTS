@@ -20,7 +20,7 @@ public class GastoCompraDTO {
     private String descripcion;
 
     @NotBlank(message = "El ID de la compra es obligatorio")
-    private String compraId;  // ID de la compra asociada
+    private String compraId;
 
     @NotNull(message = "Debe especificar los items de compra")
     private List<ItemCompraDTO> itemsCompra;
