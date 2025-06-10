@@ -5,7 +5,9 @@ import java.util.List;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
 
+import com.ArqProyect.mspayments.dto.CompraPlayloadDTO;
 import com.ArqProyect.mspayments.dto.GastoCompraDTO;
+import com.ArqProyect.mspayments.dto.ItemCompraDTO;
 import com.ArqProyect.mspayments.model.GastoCompra;
 // import com.ArqProyect.mspayments.services.CuotaGastoService;
 import com.ArqProyect.mspayments.services.GastoCompraService;
@@ -83,11 +85,40 @@ public class PaymentConsumer {
     // GASTO COMPRA - MS-INVENTORY
     private Object handleCrearGastoCompra(JsonNode data) {
         try {
-            if(data == null) {
+            if (data == null) {
                 throw new IllegalArgumentException("El cuerpo del mensaje no puede ser nulo");
             }
-            GastoCompraDTO dto = objectMapper.treeToValue(data, GastoCompraDTO.class);
-            var gastoGuardado = gastoCompraService.crearGastoCompraDesdeDTO(dto);
+            CompraPlayloadDTO dto = objectMapper.treeToValue(data, CompraPlayloadDTO.class);
+            List<ItemCompraDTO> itemDTOs = dto.getItemsCompra().stream().map(item -> {
+                ItemCompraDTO itemDTO = new ItemCompraDTO();
+                itemDTO.setProductoId(item.getProductoId());
+                itemDTO.setNombreProducto(item.getNombreProducto());
+                itemDTO.setCantidad(item.getCantidad());
+                itemDTO.setPrecioUnitario(item.getPrecioUnitario());
+                itemDTO.setEsCompartido(item.getEsCompartido());
+                itemDTO.setPropietarioId(item.getPropietarioId());
+                return itemDTO;
+            }).toList();
+
+            //Calcular totales
+            double totalIndividual = itemDTOs.stream()
+                    .filter(item -> !Boolean.TRUE.equals(item.getEsCompartido()))
+                    .mapToDouble(item -> item.getPrecioUnitario() * item.getCantidad())
+                    .sum();
+
+            double totalCompartido = itemDTOs.stream()
+                    .filter(item -> Boolean.TRUE.equals(item.getEsCompartido()))
+                    .mapToDouble(item -> item.getPrecioUnitario() * item.getCantidad())
+                    .sum();
+
+            GastoCompraDTO gasto = new GastoCompraDTO();
+            gasto.setCasaId(dto.getCasaId());
+            gasto.setDescripcion("Compra de Insumos");
+            gasto.setItemsCompra(itemDTOs);
+            gasto.setValorTotalIndividual(totalIndividual);
+            gasto.setValorTotalCompartido(totalCompartido);
+
+            var gastoGuardado = gastoCompraService.crearGastoCompraDesdeDTO(gasto);
             System.out.println("GastoCompra creado con ID: " + gastoGuardado.getId());
             return "GastoCompra creado exitosamente";
         } catch (Exception e) {
@@ -102,8 +133,8 @@ public class PaymentConsumer {
         if(data == null || !data.isTextual()) {
             throw new IllegalArgumentException("El campo 'casaId' debe ser un texto no nulo");
         }
-        String cadaId = data.asText();
-        return gastoCompraService.getGastosByCasa(cadaId);
+        String casaId = data.asText();
+        return gastoCompraService.getGastosByCasa(casaId);
     }
 
 }
