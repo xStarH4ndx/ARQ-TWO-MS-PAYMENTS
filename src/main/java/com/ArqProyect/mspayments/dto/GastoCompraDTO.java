@@ -19,6 +19,9 @@ public class GastoCompraDTO {
     @NotBlank(message = "La descripción es obligatoria")
     private String descripcion;
 
+    @NotBlank(message = "El ID de la compra es obligatorio")
+    private String compraId;  // ID de la compra asociada
+
     @NotNull(message = "Debe especificar los items de compra")
     private List<ItemCompraDTO> itemsCompra;
 

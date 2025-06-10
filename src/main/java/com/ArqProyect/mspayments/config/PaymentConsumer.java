@@ -42,6 +42,8 @@ public class PaymentConsumer {
                 //  GASTO COMPRA
                 case "crearGastoCompra":
                     return handleCrearGastoCompra(data);
+                case "eliminarGastoCompra":
+                    return handleEliminarGastoCompra(data);
                 default:
                     System.out.println("MS-PAYMENT: Accion no reconocida: " + action);
                     return "Accion no reconocida: " + action;
@@ -83,7 +85,24 @@ public class PaymentConsumer {
 
 
     // GASTO COMPRA - MS-INVENTORY
-    private Object handleCrearGastoCompra(JsonNode data) {
+    private String handleEliminarGastoCompra(JsonNode data) {
+        try {
+            if (data == null || !data.hasNonNull("compraId")) {
+                throw new IllegalArgumentException("El campo 'compraId' es requerido y no puede ser nulo");
+            }
+            String compraId = data.get("compraId").asText();
+            gastoCompraService.eliminarGastoCompra(compraId);
+            String msg = "GastoCompra eliminado exitosamente: " + compraId;
+            System.out.println(msg);
+            return msg;
+        } catch (Exception e) {
+            String msg = "Error al eliminar GastoCompra: " + e.getMessage();
+            System.err.println(msg);
+            return msg;
+        }
+    }
+
+    private String handleCrearGastoCompra(JsonNode data) {
         try {
             if (data == null) {
                 throw new IllegalArgumentException("El cuerpo del mensaje no puede ser nulo");
@@ -119,12 +138,12 @@ public class PaymentConsumer {
             gasto.setValorTotalCompartido(totalCompartido);
 
             var gastoGuardado = gastoCompraService.crearGastoCompraDesdeDTO(gasto);
-            System.out.println("GastoCompra creado con ID: " + gastoGuardado.getId());
-            return "GastoCompra creado exitosamente";
+            String msg= "GastoCompra creado exitosamente: " + gastoGuardado.getId();
+            System.out.println(msg);
+            return msg;
         } catch (Exception e) {
-            System.err.println("Error al procesar GastoCompra: " + e.getMessage());
-            e.printStackTrace();
-            return "Error al procesar GastoCompra: " + e.getMessage();
+            String msg = "Error al procesar GastoCompra: " + e.getMessage();
+            return msg;
         }
     }
 

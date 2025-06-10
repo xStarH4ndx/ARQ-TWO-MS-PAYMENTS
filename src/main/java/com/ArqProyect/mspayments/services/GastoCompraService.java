@@ -18,11 +18,20 @@ public class GastoCompraService {
     @Autowired
     private GastoCompraRepository gastoCompraRepository;
 
+    public void eliminarGastoCompra(String compraId) {
+        GastoCompra gasto = gastoCompraRepository.findByCompraId(compraId);
+        if (gasto == null) {
+            throw new RuntimeException("GastoCompra no encontrado con ID: " + compraId);
+        }
+        gastoCompraRepository.delete(gasto);
+    }
+
     public GastoCompra crearGastoCompraDesdeDTO(GastoCompraDTO dto) {
         GastoCompra gasto = new GastoCompra();
         gasto.setCasaId(dto.getCasaId());
         gasto.setDescripcion(dto.getDescripcion());
         gasto.setFechaRegistro(LocalDateTime.now());
+        gasto.setCompraId(dto.getCompraId());
         gasto.setItemsCompra(
             dto.getItemsCompra().stream().map(itemDTO -> {
                 ItemCompraPlayload item = new ItemCompraPlayload();
