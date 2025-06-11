@@ -52,5 +52,14 @@ public class GastoCompraService {
     public List<GastoCompra> getGastosByCasa(String casaId) {
         return gastoCompraRepository.findByCasaId(casaId);
     }
+
+    public GastoCompra getUltimoGastoByCasa(String casaId) {
+        GastoCompra gasto = gastoCompraRepository.findTopByCasaIdOrderByFechaRegistroDesc(casaId);
+        if (gasto == null) {
+            throw new RuntimeException("No se encontró ningún gasto para la casa con ID: " + casaId);
+        }
+        return gasto;
+    }
+
 }
 

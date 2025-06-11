@@ -8,4 +8,5 @@ public interface CuotaGastoRepository extends MongoRepository<CuotaGasto, String
     List<CuotaGasto> findByUserId(String userId);
     List<CuotaGasto> findByGastoId(String gastoId);
     List<CuotaGasto> findByEstadoPago(boolean estadoPago);
+
 }

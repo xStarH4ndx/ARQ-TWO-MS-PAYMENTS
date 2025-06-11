@@ -34,5 +34,15 @@ public class CuotaGastoService {
         cuota.setEstadoPago(true);
         cuotaGastoRepository.save(cuota);
     }
+
+    public void eliminarCuotasPorGastoId(String gastoId) {
+        List<CuotaGasto> cuotas = cuotaGastoRepository.findByGastoId(gastoId);
+        if (cuotas.isEmpty()) {
+            throw new RuntimeException("No se encontraron cuotas para el gastoId: " + gastoId);
+        }
+        cuotaGastoRepository.deleteAll(cuotas);
+    }
+
+
 }
 

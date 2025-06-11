@@ -3,12 +3,16 @@ package com.ArqProyect.mspayments.config;
 import java.util.List;
 
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Component;
 
 import com.ArqProyect.mspayments.dto.CompraPlayloadDTO;
+import com.ArqProyect.mspayments.dto.CuotaGastoDTO;
 import com.ArqProyect.mspayments.dto.GastoCompraDTO;
 import com.ArqProyect.mspayments.dto.ItemCompraDTO;
+import com.ArqProyect.mspayments.model.CasaPlayload;
 import com.ArqProyect.mspayments.model.GastoCompra;
+import com.ArqProyect.mspayments.services.CuotaGastoService;
 // import com.ArqProyect.mspayments.services.CuotaGastoService;
 import com.ArqProyect.mspayments.services.GastoCompraService;
 // import com.ArqProyect.mspayments.services.GastoServicioService;
@@ -23,8 +27,10 @@ public class PaymentConsumer {
 
     private final GastoCompraService gastoCompraService;
     // private final GastoServicioService gastoServicioService;
-    // private final CuotaGastoService cuotaGastoService;
+    private final CuotaGastoService cuotaGastoService;
     private final ObjectMapper objectMapper;
+    private final RabbitTemplate rabbitTemplate;
+
 
     // escuchar ms-inventory
     @RabbitListener(queues = "gastoCompra.queue")
@@ -83,6 +89,54 @@ public class PaymentConsumer {
         }
     }
 
+    // escuchar ms-users
+    @RabbitListener(queues = "cuotaPago.queue")
+    public void handleCuotaPagoResponse(CasaPlayload casaPayload) {
+        try {
+            if (casaPayload == null || casaPayload.getUserIds() == null || casaPayload.getUserIds().length == 0) {
+                throw new IllegalArgumentException("CasaPlayload o userIds no válidos");
+            }
+
+            // Obtener el último GastoCompra (puedes mejorar esto con lógica más robusta)
+            var gastoCompra = gastoCompraService.getUltimoGastoByCasa(casaPayload.getId());
+
+            if (gastoCompra == null) {
+                throw new RuntimeException("No se encontró GastoCompra para la casa " + casaPayload.getId());
+            }
+
+            double totalCompartido = gastoCompra.getValorTotalCompartido();
+            double cuotaCompartida = totalCompartido / casaPayload.getUserIds().length;
+
+            // Generar cuotas compartidas
+            for (String userId : casaPayload.getUserIds()) {
+                CuotaGastoDTO cuotaDTO = new CuotaGastoDTO();
+                cuotaDTO.setGastoId(gastoCompra.getId());
+                cuotaDTO.setUserId(userId);
+                cuotaDTO.setValorCuota(cuotaCompartida);
+                cuotaDTO.setEstadoPago(false);
+                cuotaGastoService.crearCuotaDesdeDTO(cuotaDTO);
+            }
+
+            // Generar cuotas individuales
+            gastoCompra.getItemsCompra().stream()
+                    .filter(item -> !Boolean.TRUE.equals(item.getEsCompartido()))
+                    .forEach(item -> {
+                        CuotaGastoDTO cuotaDTO = new CuotaGastoDTO();
+                        cuotaDTO.setGastoId(gastoCompra.getId());
+                        cuotaDTO.setUserId(item.getPropietarioId());
+                        cuotaDTO.setValorCuota(item.getCantidad() * item.getPrecioUnitario());
+                        cuotaDTO.setEstadoPago(false);
+                        cuotaGastoService.crearCuotaDesdeDTO(cuotaDTO);
+                    });
+
+            System.out.println("Cuotas creadas exitosamente para casa: " + casaPayload.getId());
+        } catch (Exception e) {
+            System.err.println("Error al procesar cuotas: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+
 
     // GASTO COMPRA - MS-INVENTORY
     private String handleEliminarGastoCompra(JsonNode data) {
@@ -107,6 +161,7 @@ public class PaymentConsumer {
             if (data == null) {
                 throw new IllegalArgumentException("El cuerpo del mensaje no puede ser nulo");
             }
+
             CompraPlayloadDTO dto = objectMapper.treeToValue(data, CompraPlayloadDTO.class);
             List<ItemCompraDTO> itemDTOs = dto.getItemsCompra().stream().map(item -> {
                 ItemCompraDTO itemDTO = new ItemCompraDTO();
@@ -119,7 +174,7 @@ public class PaymentConsumer {
                 return itemDTO;
             }).toList();
 
-            //Calcular totales
+            // Calcular totales
             double totalIndividual = itemDTOs.stream()
                     .filter(item -> !Boolean.TRUE.equals(item.getEsCompartido()))
                     .mapToDouble(item -> item.getPrecioUnitario() * item.getCantidad())
@@ -130,6 +185,7 @@ public class PaymentConsumer {
                     .mapToDouble(item -> item.getPrecioUnitario() * item.getCantidad())
                     .sum();
 
+            // Crear GastoCompraDTO
             GastoCompraDTO gasto = new GastoCompraDTO();
             gasto.setCompraId(dto.getCompraId());
             gasto.setCasaId(dto.getCasaId());
@@ -139,11 +195,27 @@ public class PaymentConsumer {
             gasto.setValorTotalCompartido(totalCompartido);
 
             var gastoGuardado = gastoCompraService.crearGastoCompraDesdeDTO(gasto);
-            String msg= "GastoCompra creado exitosamente: " + gastoGuardado.getId();
+
+            // ➕ ENVIAR MENSAJE A MS-USERS
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode bodyNode = mapper.createObjectNode().put("casaId", dto.getCasaId());
+
+            PayloadDTO payload = new PayloadDTO();
+            payload.setAction("getHouseById");
+            payload.setBody(bodyNode);
+
+            MessageDTO message = new MessageDTO();
+            message.setData(payload);
+
+            rabbitTemplate.convertAndSend("cuotaPago.queue", message);
+            System.out.println("Mensaje enviado a ms-users con casaId: " + dto.getCasaId());
+
+            String msg = "GastoCompra creado exitosamente: " + gastoGuardado.getId();
             System.out.println(msg);
             return msg;
         } catch (Exception e) {
             String msg = "Error al procesar GastoCompra: " + e.getMessage();
+            System.err.println(msg);
             return msg;
         }
     }
