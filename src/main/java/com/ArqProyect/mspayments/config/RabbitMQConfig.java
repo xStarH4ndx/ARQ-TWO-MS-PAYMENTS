@@ -18,9 +18,16 @@ public class RabbitMQConfig {
         return QueueBuilder.durable("mspayments.queue").build();
     }
 
+    // Conexion ms-inventory
     @Bean
     public Queue cuotaGastoQueue() {
         return QueueBuilder.durable("gastoCompra.queue").build();
+    }
+
+    // Conexion ms-users
+    @Bean
+    public Queue cuotaPagoQueue() {
+        return QueueBuilder.durable("cuotaPago.queue").build();
     }
 
     @Bean
