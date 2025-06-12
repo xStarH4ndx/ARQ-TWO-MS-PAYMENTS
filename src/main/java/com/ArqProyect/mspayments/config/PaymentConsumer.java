@@ -3,19 +3,21 @@ package com.ArqProyect.mspayments.config;
 import java.util.List;
 
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
+// import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Component;
 
 import com.ArqProyect.mspayments.dto.CompraPlayloadDTO;
 import com.ArqProyect.mspayments.dto.CuotaGastoDTO;
 import com.ArqProyect.mspayments.dto.GastoCompraDTO;
+import com.ArqProyect.mspayments.dto.GastoServicioDTO;
 import com.ArqProyect.mspayments.dto.ItemCompraDTO;
 import com.ArqProyect.mspayments.model.CasaPlayload;
 import com.ArqProyect.mspayments.model.GastoCompra;
+import com.ArqProyect.mspayments.model.GastoServicio;
 import com.ArqProyect.mspayments.services.CuotaGastoService;
 // import com.ArqProyect.mspayments.services.CuotaGastoService;
 import com.ArqProyect.mspayments.services.GastoCompraService;
-// import com.ArqProyect.mspayments.services.GastoServicioService;
+import com.ArqProyect.mspayments.services.GastoServicioService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -26,10 +28,10 @@ import lombok.RequiredArgsConstructor;
 public class PaymentConsumer {
 
     private final GastoCompraService gastoCompraService;
-    // private final GastoServicioService gastoServicioService;
+    private final GastoServicioService gastoServicioService;
     private final CuotaGastoService cuotaGastoService;
     private final ObjectMapper objectMapper;
-    private final RabbitTemplate rabbitTemplate;
+    // private final RabbitTemplate rabbitTemplate;
 
 
     // escuchar ms-inventory
@@ -77,7 +79,10 @@ public class PaymentConsumer {
                 //  GASTO COMPRA
                 case "listarGastoCompra":
                     return handleListarGastoComprasCasa(data);
-
+                case "crearGastoServicio":
+                    return handleCrearGastoServicio(data);
+                case "listarGastoServicioCasa":
+                    return handleListarGastoServicioCasa(data);
                 default:
                     System.out.println("MS-PAYMENT: Accion no reconocida: " + action);
                     return "Accion no reconocida: " + action;
@@ -136,6 +141,32 @@ public class PaymentConsumer {
         }
     }
 
+    // GASTO SERVICIO - APIGATEWAY
+    private Object handleCrearGastoServicio(JsonNode data) {
+        try{
+            if (data == null) {
+                throw new IllegalArgumentException("El cuerpo del mensaje no puede ser nulo");
+            }
+            GastoServicioDTO dto = objectMapper.treeToValue(data, GastoServicioDTO.class);
+            var gastoGuardado = gastoServicioService.crearGastoServicioDesdeDTO(dto);
+            String msg = "GastoServicio creado exitosamente: " + gastoGuardado.getId();
+            System.out.println(msg);
+            return msg;
+        } catch (Exception e) {
+            String msg = "Error al procesar GastoServicio: " + e.getMessage();
+            System.err.println(msg);
+            return msg;
+        }
+    }
+
+    // GASTO COMPRA - APIGATEWAY
+    private List<GastoServicio> handleListarGastoServicioCasa(JsonNode data) {
+        if(data == null || !data.isTextual()) {
+            throw new IllegalArgumentException("El campo 'casaId' debe ser un texto no nulo");
+        }
+        String casaId = data.asText();
+        return gastoServicioService.getGastosByCasa(casaId);
+    }
 
 
     // GASTO COMPRA - MS-INVENTORY
@@ -196,19 +227,19 @@ public class PaymentConsumer {
 
             var gastoGuardado = gastoCompraService.crearGastoCompraDesdeDTO(gasto);
 
-            // ➕ ENVIAR MENSAJE A MS-USERS
-            ObjectMapper mapper = new ObjectMapper();
-            JsonNode bodyNode = mapper.createObjectNode().put("casaId", dto.getCasaId());
+            // // ENVIAR MENSAJE A MS-USERS WARNING---------------------------------
+            // ObjectMapper mapper = new ObjectMapper();
+            // JsonNode bodyNode = mapper.createObjectNode().put("casaId", dto.getCasaId());
 
-            PayloadDTO payload = new PayloadDTO();
-            payload.setAction("getHouseById");
-            payload.setBody(bodyNode);
+            // PayloadDTO payload = new PayloadDTO();
+            // payload.setAction("getHouseById");
+            // payload.setBody(bodyNode);
 
-            MessageDTO message = new MessageDTO();
-            message.setData(payload);
+            // MessageDTO message = new MessageDTO();
+            // message.setData(payload);
 
-            rabbitTemplate.convertAndSend("cuotaPago.queue", message);
-            System.out.println("Mensaje enviado a ms-users con casaId: " + dto.getCasaId());
+            // rabbitTemplate.convertAndSend("cuotaPago.queue", message);
+            // System.out.println("Mensaje enviado a ms-users con casaId: " + dto.getCasaId());
 
             String msg = "GastoCompra creado exitosamente: " + gastoGuardado.getId();
             System.out.println(msg);
