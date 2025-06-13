@@ -22,7 +22,7 @@ public class GastoServicioService {
         gasto.setDescripcion(dto.getDescripcion());
         gasto.setValorTotal(dto.getValorTotal());
         gasto.setFechaRenovacion(dto.getFechaRenovacion());
-        gasto.setFechaRegistro(LocalDateTime.now());
+        gasto.setFechaRegistro(LocalDateTime.now().toString());
         return gastoServicioRepository.save(gasto);
     }
 

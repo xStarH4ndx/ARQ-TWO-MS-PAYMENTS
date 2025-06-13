@@ -30,7 +30,7 @@ public class GastoCompraService {
         GastoCompra gasto = new GastoCompra();
         gasto.setCasaId(dto.getCasaId());
         gasto.setDescripcion(dto.getDescripcion());
-        gasto.setFechaRegistro(LocalDateTime.now());
+        gasto.setFechaRegistro(LocalDateTime.now().toString());
         gasto.setCompraId(dto.getCompraId());
         gasto.setItemsCompra(
             dto.getItemsCompra().stream().map(itemDTO -> {

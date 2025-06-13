@@ -1,7 +1,5 @@
 package com.ArqProyect.mspayments.dto;
 
-import java.time.LocalDate;
-
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -25,5 +23,5 @@ public class GastoServicioDTO {
     private Double valorTotal;
 
     @NotBlank(message = "La fecha de renovación es obligatoria")
-    private LocalDate fechaRenovacion;
+    private String fechaRenovacion;
 }

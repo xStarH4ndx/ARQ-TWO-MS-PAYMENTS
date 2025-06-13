@@ -1,6 +1,5 @@
 package com.ArqProyect.mspayments.model;
 
-import java.time.LocalDateTime;
 import org.springframework.data.annotation.Id;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -12,5 +11,5 @@ public abstract class Gasto{
     private String id;
     private String casaId;
     private String descripcion;
-    private LocalDateTime fechaRegistro;
+    private String fechaRegistro;
 }
