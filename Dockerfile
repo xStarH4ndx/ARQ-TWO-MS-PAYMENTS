@@ -1,19 +1,28 @@
-# Imagen base para Java 21
+# ---------- Etapa 1: Compilación ----------
+FROM maven:3.9.6-eclipse-temurin-21-alpine AS builder
+
+# Copia todo el proyecto y compila
+WORKDIR /app
+COPY pom.xml .
+COPY src ./src
+
+# Compila el proyecto y genera el .jar
+RUN mvn clean package -DskipTests
+
+# ---------- Etapa 2: Imagen final (producción) ----------
 FROM eclipse-temurin:21-jdk-alpine
 
-# Crear directorio para la app
+# Carpeta donde correrá la app
 WORKDIR /app
 
-# Copiar el .jar generado al contenedor
-# Asegúrate de que el nombre del JAR sea correcto.
-# Si tu proyecto Maven/Gradle genera un JAR con un nombre diferente,
-# por favor, ajusta 'ms-payments-0.0.1-SNAPSHOT.jar'
-COPY target/ms-payments-0.0.1-SNAPSHOT.jar app.jar
+# Copia el .jar desde la imagen builder
+COPY --from=builder /app/target/ms-payments-0.0.1-SNAPSHOT.jar app.jar
 
-# Exponer el puerto que usa tu aplicación
-# Según tu application.properties, es el puerto 8083
+# Puerto expuesto (ajústalo si usas otro)
 EXPOSE 8083
 
-# Comando para ejecutar la app
-# El 'app.jar' es el nombre que le dimos al JAR copiado
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# Variables opcionales para JVM (memoria, rendimiento, etc.)
+ENV JAVA_OPTS="-XX:+UseContainerSupport -Dfile.encoding=UTF-8"
+
+# Ejecuta el JAR
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
